@@ -1,0 +1,63 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using VkApi.Models;
+using VkApi.Services;
+using VkNet.Enums.SafetyEnums;
+using VkNet.Model.RequestParams;
+
+namespace VkApi.Controllers
+{
+    [ApiController]
+    [Route("[controller]")]
+    public class VkApiController : ControllerBase
+    {
+        private readonly IVkService _vkService;
+
+        public VkApiController(IVkService vkService)
+        {
+            _vkService = vkService;
+        }
+
+        [HttpGet]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> GetVkSettings([FromHeader] string token, CancellationToken cancellationToken = default)
+        {
+            var settings = await _vkService.GetVkSettings(token);
+            return new OkObjectResult(settings);
+        }
+
+        [HttpPost("sendMessages")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> SendMessages([FromHeader] string token, [FromBody] MessagesSendParams messageParams, CancellationToken cancellationToken = default)
+        {
+            await _vkService.SendMessage(token, messageParams);
+            return new OkResult();
+        }
+
+        [HttpPost("addFriends")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> AddFriends([FromHeader] string token, [FromBody] AddFriendsModel addFriendsModel, CancellationToken cancellationToken = default)
+        {
+            await _vkService.AddFriends(token, addFriendsModel);
+            return new OkResult();
+        }
+
+        [HttpPost("filterSuggestionsFriends")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> FilterSuggestionsFriends([FromHeader] string token, [FromBody] FriendsFilter friendsFilter, CancellationToken cancellationToken = default)
+        {
+            var suggestionsFriends = await _vkService.FilterSuggestionsFriends(token, friendsFilter);
+            return new OkObjectResult(suggestionsFriends);
+        }
+
+        [HttpPost("getMembersFromGroup")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] GroupsGetMembersParams groupsGetMembersParams, string groupName, CancellationToken cancellationToken = default)
+        {
+            var groups = await _vkService.GetMembersFromGroup(token, groupsGetMembersParams, groupName);
+            return new OkObjectResult(groups);
+        }
+    }
+}
