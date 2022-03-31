@@ -75,8 +75,8 @@ namespace VkApi.SettingsEvent
     public class MessageSettings
     {
         public bool about { get; set; }
-        public bool noanswer { get; set; }
-        public bool anyСase { get; set; }
+        public bool noanswer { get; set; } 
+        public bool anyСase { get; set; } 
     }
 
     public class RandomizeText
@@ -99,16 +99,6 @@ namespace VkApi.SettingsEvent
         public bool on { get; set; }
         public List<string> path { get; set; }
         public bool random { get; set; }
-    }
-
-    public class AutoresponderСonfirmFriends
-    {
-        public int contGreeting { get; set; }
-        public int delay { get; set; }
-        public MessageSettings messageSettings { get; set; }
-        public RandomizeText randomizeText { get; set; }
-        public LinkPhoto linkPhoto { get; set; }
-        public Audio audio { get; set; }
     }
 
     public class OneOption

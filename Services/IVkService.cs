@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using VkApi.Models;
+using VkApi.SettingsEvent.AutoAddedFriends;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model;
 using VkNet.Model.RequestParams;
@@ -11,7 +11,7 @@ namespace VkApi.Services
     {
         Task<string> GetVkSettings(string _token);
         Task SendMessage(string _token, MessagesSendParams _messagesSendParams);
-        Task AddFriends(string _token, AddFriendsModel _addFriendsModel);
+        Task AddSuggestFriends(AddSuggestFriendsModel _addSuggestFriendsModel);
         Task<VkCollection<User>> FilterSuggestionsFriends(string _token, FriendsFilter _friendsFilter);
 
         Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams,

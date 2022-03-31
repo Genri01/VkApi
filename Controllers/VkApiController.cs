@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VkApi.Models;
 using VkApi.Services;
+using VkApi.SettingsEvent.AutoAddedFriends;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model.RequestParams;
 
@@ -36,11 +37,11 @@ namespace VkApi.Controllers
             return new OkResult();
         }
 
-        [HttpPost("addFriends")]
+        [HttpPost("addSuggestionsFriends")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AddFriends([FromHeader] string token, [FromBody] AddFriendsModel addFriendsModel, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> AddFriends([FromBody] AddSuggestFriendsModel _addSuggestFriendsModel, CancellationToken cancellationToken = default)
         {
-            await _vkService.AddFriends(token, addFriendsModel);
+            await _vkService.AddSuggestFriends(_addSuggestFriendsModel);
             return new OkResult();
         }
 
@@ -52,12 +53,12 @@ namespace VkApi.Controllers
             return new OkObjectResult(suggestionsFriends);
         }
 
-        [HttpPost("getMembersFromGroup")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] GroupsGetMembersParams groupsGetMembersParams, string groupName, CancellationToken cancellationToken = default)
-        {
-            var groups = await _vkService.GetMembersFromGroup(token, groupsGetMembersParams, groupName);
-            return new OkObjectResult(groups);
-        }
+        //[HttpPost("getMembersFromGroup")]
+        //[ProducesResponseType((int)HttpStatusCode.OK)]
+        //public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] GroupsGetMembersParams groupsGetMembersParams, string groupName, CancellationToken cancellationToken = default)
+        //{
+        //    var groups = await _vkService.Get(token, groupsGetMembersParams, groupName);
+        //    return new OkObjectResult(groups);
+        //}
     }
 }

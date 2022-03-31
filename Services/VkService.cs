@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using VkApi.Models;
+using VkApi.SettingsEvent.AutoAddedFriends;
 using VkNet.AudioBypassService.Extensions;
 using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
@@ -17,28 +17,23 @@ namespace VkApi.Services
     {
 
         private readonly ILogger<VkService> _logger;
-        private readonly VkNet.VkApi _api;
-
+        
         public VkService(ILogger<VkService> logger)
         {
-            var services = new ServiceCollection();
-            services.AddAudioBypass();
-
-            _api = new VkNet.VkApi(services);
         }
 
         public async Task<string> GetVkSettings(string _token)
         {
             var token = "6986daabc75dbd577df64039501c1b9347b336547bf508591494d8487c851fb3f071797a56af53b72b1bb";
-            await Authorize(_token);
+            var api = await Authorize(_token);
 
             return "Settings Ok";
         }
 
         public async Task SendMessage(string _token, MessagesSendParams _messagesSendParams)
         {
-            await Authorize(_token);
-            await _api.Messages.SendAsync(new MessagesSendParams
+            var api = await Authorize(_token);
+            await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = _messagesSendParams.PeerId,
                 Message = _messagesSendParams.Message,
@@ -46,46 +41,62 @@ namespace VkApi.Services
             });
         }
 
-        public async Task AddFriends(string _token, AddFriendsModel _addFriendsModel)
+        public async Task AddSuggestFriends(AddSuggestFriendsModel _addSuggestFriendsModel)
         {
-            await Authorize(_token);
-            
-            foreach (var userId in _addFriendsModel.UserIds)
+            foreach (var token in _addSuggestFriendsModel.AcountTokens)
             {
-                await _api.Friends.AddAsync(userId, _addFriendsModel.WelcomeMessage, false);
+                var api = await Authorize(token);
+                
+                var suggestFriends = await api.Friends.GetSuggestionsAsync();
+
+                for (int i = 0; i < _addSuggestFriendsModel.RequestCount; i++)
+                {
+                    await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.wlecomeMessage, false);
+                }
             }
         }
 
 
         public async Task<VkCollection<User>> FilterSuggestionsFriends(string _token, FriendsFilter friendsFilter)
         {
-            await Authorize(_token);
+            var api = await Authorize(_token);
 
-            return await _api.Friends.GetSuggestionsAsync(friendsFilter);
+            return await api.Friends.GetSuggestionsAsync(friendsFilter);
+        }
+
+        public Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<VkCollection<User>> GetMembersFromGroup(string _token, GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
         {
-            await Authorize(_token);
+            var api = await Authorize(_token);
 
             string groupId = null;
             if (!string.IsNullOrEmpty(groupName))
             {
-                var group = await _api.Utils.ResolveScreenNameAsync(groupName);
+                var group = await api.Utils.ResolveScreenNameAsync(groupName);
                 groupId = group.Id.ToString();
             }
 
-            return await _api.Groups.GetMembersAsync(new GroupsGetMembersParams()
+            return await api.Groups.GetMembersAsync(new GroupsGetMembersParams()
                 { GroupId = groupId ?? _groupsGetMembersParams.GroupId, Fields = UsersFields.All });
         }
 
-        private async Task Authorize(string _token)
+        private async Task<VkNet.VkApi> Authorize(string _token)
         {
+            var services = new ServiceCollection();
+            services.AddAudioBypass();
+
+            var api = new VkNet.VkApi(services);
+
             _token = "6986daabc75dbd577df64039501c1b9347b336547bf508591494d8487c851fb3f071797a56af53b72b1bb";
-            await _api.AuthorizeAsync(new ApiAuthParams()
+            await api.AuthorizeAsync(new ApiAuthParams()
             {
                 AccessToken = _token
             });
+            return api;
         }
     }
 }
