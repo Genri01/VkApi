@@ -2,9 +2,9 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using VkApi.Models;
 using VkApi.Services;
 using VkApi.SettingsEvent.AutoAddedFriends;
+using VkApi.SettingsEvent.AutoResponder;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model.RequestParams;
 
@@ -42,6 +42,14 @@ namespace VkApi.Controllers
         public async Task<IActionResult> AddFriends([FromBody] AddSuggestFriendsModel _addSuggestFriendsModel, CancellationToken cancellationToken = default)
         {
             await _vkService.AddSuggestFriends(_addSuggestFriendsModel);
+            return new OkResult();
+        }
+
+        [HttpPost("autoResponderFriends")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> AutoResponderFriends([FromBody] AutoFriendsResponderModel _autoFriendsResponderModel, CancellationToken cancellationToken = default)
+        {
+            await _vkService.AutoResponderFriends(_autoFriendsResponderModel);
             return new OkResult();
         }
 

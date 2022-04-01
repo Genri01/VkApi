@@ -6,8 +6,8 @@ namespace VkApi.SettingsEvent.AutoAddedFriends
     {
         public List<string> AcountTokens { get; set; } // токены пользователей
         public int RequestCount { get; set; } // количество заявок в друзья
-        public string wlecomeMessage { get; set; }
+        public string welcomeMessage { get; set; }
         public bool SetLikeToWall { get; set; }
-        public bool SetLikeToAvatar { get; set; }
+        public bool SetLikeToProfilePhoto { get; set; }
     }
 }

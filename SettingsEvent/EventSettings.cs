@@ -217,7 +217,6 @@ namespace VkApi.SettingsEvent
     public class Tasks
     {
         public Shedule shedule { get; set; }
-        public AutoresponderСonfirmFriends autoresponderСonfirmFriends { get; set; }
         public Autosecretary autosecretary { get; set; }
         public LikingViewingStories likingViewingStories { get; set; }
         public AutoresponderIncomingRequestsFriends autoresponderIncomingRequestsFriends { get; set; }
