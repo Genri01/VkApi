@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -455,6 +457,34 @@ namespace VkApi.Services
                         RandomId = new Random().Next()
                     });
             }
+        }
+
+        private async Task SendPhoto(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> ids, int delay, bool IsGroup = false)
+        {
+            var t123 = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
+            {
+                Title = "TestAlbums"
+            });
+
+
+            // Получить адрес сервера для загрузки.
+            var uploadServer = api.Photo.GetUploadServer(t123.Id);
+            // Загрузить файл.
+            var wc = new WebClient();
+            var responseFile = Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, @"d:/testImage.jpg"));
+            // Сохранить загруженный файл
+            var photos = api.Photo.Save(new PhotoSaveParams
+            {
+                SaveFileResponse = responseFile,
+                AlbumId = t123.Id
+            });
+            api.Messages.Send(new MessagesSendParams
+            {
+                RandomId = 123, // уникальный
+                Attachments = photos,
+                Message = "Message with photo",
+                UserId = 621118712
+            });
         }
     }
 }
