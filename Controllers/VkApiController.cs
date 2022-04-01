@@ -4,7 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using VkApi.Services;
 using VkApi.SettingsEvent.AutoAddedFriends;
+using VkApi.SettingsEvent.AutoLikingFriends;
 using VkApi.SettingsEvent.AutoResponder;
+using VkApi.SettingsEvent.SuggestFriendsFilter;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model.RequestParams;
 
@@ -55,10 +57,18 @@ namespace VkApi.Controllers
 
         [HttpPost("filterSuggestionsFriends")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> FilterSuggestionsFriends([FromHeader] string token, [FromBody] FriendsFilter friendsFilter, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> FilterSuggestionsFriends([FromHeader] string token, [FromBody] SuggestFriendsFilter friendsFilter, CancellationToken cancellationToken = default)
         {
             var suggestionsFriends = await _vkService.FilterSuggestionsFriends(token, friendsFilter);
             return new OkObjectResult(suggestionsFriends);
+        }
+
+        [HttpPost("autoLikingFriendsOrGroups")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> AutoLikingFriendsOrGroups([FromBody] AutoLikingFriends autoLikingFriends, CancellationToken cancellationToken = default)
+        {
+            await _vkService.AutoLikingFriendsOrGroups(autoLikingFriends);
+            return new OkResult();
         }
 
         //[HttpPost("getMembersFromGroup")]

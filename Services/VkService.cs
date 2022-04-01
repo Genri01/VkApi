@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VkApi.SettingsEvent.AutoAddedFriends;
+using VkApi.SettingsEvent.AutoLikingFriends;
 using VkApi.SettingsEvent.AutoResponder;
+using VkApi.SettingsEvent.SuggestFriendsFilter;
 using VkNet.AudioBypassService.Extensions;
 using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
@@ -52,8 +55,6 @@ namespace VkApi.Services
 
                 var suggestFriends = await api.Friends.GetSuggestionsAsync();
 
-                var t = suggestFriends.Count;
-
                 _addSuggestFriendsModel.RequestCount =
                     (suggestFriends.Count < _addSuggestFriendsModel.RequestCount)
                         ? suggestFriends.Count
@@ -61,6 +62,8 @@ namespace VkApi.Services
 
                 for (var i = 0; i < _addSuggestFriendsModel.RequestCount; i++)
                 {
+                    Thread.Sleep(_addSuggestFriendsModel.Delay * 1000);
+
                     var userId = suggestFriends.ElementAt(i).Id;
                     await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.welcomeMessage, false);
 
@@ -90,17 +93,59 @@ namespace VkApi.Services
                     case AutoResponderEventType.SpecificUsers:
                         await SpecificUsersWorker(api, _autoFriendsResponderModel);
                         break;
+                    case AutoResponderEventType.SpecificGroups:
+                        await SpecificGroupsWorker(api, _autoFriendsResponderModel);
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
         }
 
-        public async Task<VkCollection<User>> FilterSuggestionsFriends(string _token, FriendsFilter friendsFilter)
+        public async Task AutoLikingFriendsOrGroups(AutoLikingFriends _autoLikingFriends)
+        {
+            foreach (var token in _autoLikingFriends.AcountTokens)
+            {
+                var api = await Authorize(token);
+
+                var confirmFriends = await api.Friends.GetAsync(new FriendsGetParams());
+
+                _autoLikingFriends.RequestCount =
+                    (confirmFriends.Count < _autoLikingFriends.RequestCount)
+                        ? confirmFriends.Count
+                        : _autoLikingFriends.RequestCount;
+
+                for (var i = 0; i < _autoLikingFriends.RequestCount; i++)
+                {
+                    Thread.Sleep(_autoLikingFriends.Delay * 1000);
+
+                    var userId = confirmFriends.ElementAt(i).Id;
+                    
+                    if (_autoLikingFriends.SetLikeToProfilePhoto)
+                        await SetLikeToProfile(api, userId);
+
+                    if (_autoLikingFriends.SetLikeToWall)
+                        await SetLikeToWall(api, userId);
+                }
+            }
+        }
+
+        public async Task<IEnumerable<UserModel>> FilterSuggestionsFriends(string _token, SuggestFriendsFilter _friendsFilter)
         {
             var api = await Authorize(_token);
 
-            return await api.Friends.GetSuggestionsAsync(friendsFilter);
+            var filter = _friendsFilter.SuggestFriendsFilterType switch
+            {
+                SuggestFriendsFilterType.Contacts => FriendsFilter.Contacts,
+                SuggestFriendsFilterType.Mutual => FriendsFilter.Mutual,
+                SuggestFriendsFilterType.MutualContacts => FriendsFilter.MutualContacts,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+            var users = await api.Friends.GetSuggestionsAsync(filter, _friendsFilter.Count);
+
+            return users.Select(user => new UserModel { UserId = user.Id, FirstName = user.FirstName, LastName = user.LastName}).ToList();
+
         }
 
         public Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
@@ -143,12 +188,12 @@ namespace VkApi.Services
             var confirmFriends = await api.Friends.GetAsync(new FriendsGetParams());
 
             var userIds = new List<long>(confirmFriends.Select(x => x.Id));
-            userIds = await FilterUsersByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
 
             if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
-                    _autoFriendsResponderModel.WelcomeCount, userIds);
+                    _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
             var likeProfileAndLikeWallCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount ? userIds.Count : _autoFriendsResponderModel.WelcomeCount;
@@ -157,6 +202,7 @@ namespace VkApi.Services
             {
                 for (int i = 0; i < likeProfileAndLikeWallCount; i++)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToProfile(api, confirmFriends.ElementAt(i).Id);
                 }
             }
@@ -165,6 +211,7 @@ namespace VkApi.Services
             {
                 for (int i = 0; i < likeProfileAndLikeWallCount; i++)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToWall(api, confirmFriends.ElementAt(i).Id);
                 }
             }
@@ -178,20 +225,21 @@ namespace VkApi.Services
             });
 
             var userIds = new List<long>(requestFriends.Items);
-            userIds = await FilterUsersByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
 
             if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
-                    _autoFriendsResponderModel.WelcomeCount, userIds);
+                    _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
             var likeProfileAndLikeWallCountAndAddToFriendCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount ? userIds.Count : _autoFriendsResponderModel.WelcomeCount;
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
             {
-                for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i ++)
+                for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i++)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToProfile(api, requestFriends.Items.ElementAt(i));
                 }
             }
@@ -200,6 +248,7 @@ namespace VkApi.Services
             {
                 for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i++)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToWall(api, requestFriends.Items.ElementAt(i));
                 }
             }
@@ -208,6 +257,7 @@ namespace VkApi.Services
             {
                 for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i++)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await api.Friends.AddAsync(requestFriends.Items.ElementAt(i), "", false);
                 }
             }
@@ -218,18 +268,19 @@ namespace VkApi.Services
             var specificUsers = await api.Users.GetAsync(_autoFriendsResponderModel.UserIds);
 
             var userIds = new List<long>(specificUsers.Select(x => x.Id));
-            userIds = await FilterUsersByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
 
             if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
-                    userIds.Count, userIds);
+                    userIds.Count, userIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
             {
                 foreach (var user in specificUsers)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToProfile(api, user.Id);
                 }
             }
@@ -238,6 +289,7 @@ namespace VkApi.Services
             {
                 foreach (var user in specificUsers)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await SetLikeToWall(api, user.Id);
                 }
             }
@@ -246,58 +298,89 @@ namespace VkApi.Services
             {
                 foreach (var user in specificUsers)
                 {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
                     await api.Friends.AddAsync(user.Id, "", false);
                 }
             }
         }
 
-        private async Task<List<long>> FilterUsersByConversation(VkNet.VkApi api, ConversationType conversationType, List<long> userIds)
+        private async Task SpecificGroupsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
+        {
+            var groupsIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, _autoFriendsResponderModel.GroupsIds, IsGroup: true);
+
+            if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
+            {
+                await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
+                    groupsIds.Count, groupsIds, _autoFriendsResponderModel.Delay, IsGroup: true);
+            }
+
+            if (_autoFriendsResponderModel.SetLikeToWall)
+            {
+                foreach (var groupId in groupsIds)
+                {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
+                    await SetLikeToWall(api, groupId, IsGroup: true);
+                }
+            }
+        }
+
+        private async Task<List<long>> FilterByConversation(VkNet.VkApi api, ConversationType conversationType, List<long> Ids, bool IsGroup = false)
         {
             var updateUserIdList = new List<long>();
 
             switch (conversationType)
             {
                 case ConversationType.ConversationIsEmpty:
-                {
-                    foreach (var userId in userIds)
                     {
-                        var history = await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                        foreach (var id in Ids)
                         {
-                            UserId = userId,
-                        });
+                            var history = IsGroup
+                                ? await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                                {
+                                    PeerId = -id,
+                                })
+                                : await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                                {
+                                    UserId = id,
+                                });
 
-                        if (history?.Messages is null || !history.Messages.Any())
-                            updateUserIdList.Add(userId);
+                            if (history?.Messages is null || !history.Messages.Any())
+                                updateUserIdList.Add(id);
+                        }
+
+                        return updateUserIdList;
                     }
-
-                    return updateUserIdList;
-                }
                 case ConversationType.ConversationIsEmptyOrNoAnwerFromMe:
-                {
-                    foreach (var userId in userIds)
                     {
-                        var history = await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                        foreach (var id in Ids)
                         {
-                            UserId = userId,
-                        });
+                            var history = IsGroup
+                                ? await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                                {
+                                    PeerId = -id,
+                                })
+                                : await api.Messages.GetHistoryAsync(new MessagesGetHistoryParams()
+                                {
+                                    UserId = id,
+                                });
 
-                        if (history?.Messages is null || !history.Messages.Any())
-                        {
-                            updateUserIdList.Add(userId);
-                        }
-                        else if (history.Messages.Any())
-                        {
-                            var outgoingMessages = history.Messages.Where(x => x.Out == false);
+                            if (history?.Messages is null || !history.Messages.Any())
+                            {
+                                updateUserIdList.Add(id);
+                            }
+                            else if (history.Messages.Any())
+                            {
+                                var outgoingMessages = history.Messages.Where(x => x.Out == false);
 
-                            if (outgoingMessages.Any())
-                                updateUserIdList.Add(userId);
+                                if (outgoingMessages.Any())
+                                    updateUserIdList.Add(id);
+                            }
                         }
+
+                        return updateUserIdList;
                     }
-
-                    return updateUserIdList;
-                }
                 case ConversationType.AnyCase:
-                    return userIds;
+                    return Ids;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(conversationType), conversationType, null);
             }
@@ -323,13 +406,19 @@ namespace VkApi.Services
             }
         }
 
-        private async Task SetLikeToWall(VkNet.VkApi api, long userId)
+        private async Task SetLikeToWall(VkNet.VkApi api, long id, bool IsGroup = false)
         {
-            var post = await api.Wall.GetAsync(new WallGetParams
-            {
-                OwnerId = userId,
-                Count = 1
-            });
+            var post = IsGroup
+                ? await api.Wall.GetAsync(new WallGetParams
+                {
+                    OwnerId = -id,
+                    Count = 1
+                })
+                : await api.Wall.GetAsync(new WallGetParams
+                {
+                    OwnerId = id,
+                    Count = 1
+                });
 
             if (post != null && post.WallPosts.Any())
             {
@@ -337,24 +426,34 @@ namespace VkApi.Services
                 await api.Likes.AddAsync(new LikesAddParams
                 {
                     Type = LikeObjectType.Post,
-                    OwnerId = userId,
+                    OwnerId = id,
                     ItemId = postId
                 });
             }
         }
 
-        private async Task SendMessages(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> userIds)
+        private async Task SendMessages(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> ids, int delay, bool IsGroup = false)
         {
-            welcomeCount = userIds.Count < welcomeCount ? userIds.Count : welcomeCount;
+            welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
             for (int i = 0; i < welcomeCount; i++)
             {
-                api.Messages.Send(new MessagesSendParams()
-                {
-                    UserId = userIds.ElementAt(i),
-                    Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
-                    RandomId = new Random().Next()
-                });
+                Thread.Sleep(delay * 1000);
+
+                var result = IsGroup ?
+                    api.Messages.Send(new MessagesSendParams()
+                    {
+                        PeerId = -ids.ElementAt(i),
+                        Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                        RandomId = new Random().Next()
+                    })
+                    : 
+                    api.Messages.Send(new MessagesSendParams()
+                    {
+                        UserId = ids.ElementAt(i),
+                        Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                        RandomId = new Random().Next()
+                    });
             }
         }
     }
