@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -23,19 +23,11 @@ namespace VkApi.Services
 {
     public class VkService : IVkService
     {
-
         private readonly ILogger<VkService> _logger;
 
         public VkService(ILogger<VkService> logger)
         {
-        }
-
-        public async Task<string> GetVkSettings(string _token)
-        {
-            var token = "6986daabc75dbd577df64039501c1b9347b336547bf508591494d8487c851fb3f071797a56af53b72b1bb";
-            var api = await Authorize(_token);
-
-            return "Settings Ok";
+            _logger = logger;
         }
 
         public async Task SendMessage(string _token, MessagesSendParams _messagesSendParams)
@@ -49,7 +41,7 @@ namespace VkApi.Services
             });
         }
 
-        public async Task AddSuggestFriends(AddSuggestFriendsModel _addSuggestFriendsModel)
+        public async Task AddSuggestFriends(string _token, AddSuggestFriendsModel _addSuggestFriendsModel)
         {
             foreach (var token in _addSuggestFriendsModel.AcountTokens)
             {
@@ -67,7 +59,8 @@ namespace VkApi.Services
                     Thread.Sleep(_addSuggestFriendsModel.Delay * 1000);
 
                     var userId = suggestFriends.ElementAt(i).Id;
-                    await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.welcomeMessage, false);
+                    await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.welcomeMessage,
+                        false);
 
                     if (_addSuggestFriendsModel.SetLikeToProfilePhoto)
                         await SetLikeToProfile(api, userId);
@@ -78,7 +71,7 @@ namespace VkApi.Services
             }
         }
 
-        public async Task AutoResponderFriends(AutoFriendsResponderModel _autoFriendsResponderModel)
+        public async Task AutoResponderFriends(string _token, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
             foreach (var token in _autoFriendsResponderModel.AcountTokens)
             {
@@ -104,7 +97,7 @@ namespace VkApi.Services
             }
         }
 
-        public async Task AutoLikingFriendsOrGroups(AutoLikingFriends _autoLikingFriends)
+        public async Task AutoLikingFriendsOrGroups(string _token, AutoLikingFriends _autoLikingFriends)
         {
             foreach (var token in _autoLikingFriends.AcountTokens)
             {
@@ -122,7 +115,7 @@ namespace VkApi.Services
                     Thread.Sleep(_autoLikingFriends.Delay * 1000);
 
                     var userId = confirmFriends.ElementAt(i).Id;
-                    
+
                     if (_autoLikingFriends.SetLikeToProfilePhoto)
                         await SetLikeToProfile(api, userId);
 
@@ -132,7 +125,8 @@ namespace VkApi.Services
             }
         }
 
-        public async Task<IEnumerable<UserModel>> FilterSuggestionsFriends(string _token, SuggestFriendsFilter _friendsFilter)
+        public async Task<IEnumerable<UserModel>> FilterSuggestionsFriends(string _token,
+            SuggestFriendsFilter _friendsFilter)
         {
             var api = await Authorize(_token);
 
@@ -146,16 +140,19 @@ namespace VkApi.Services
 
             var users = await api.Friends.GetSuggestionsAsync(filter, _friendsFilter.Count);
 
-            return users.Select(user => new UserModel { UserId = user.Id, FirstName = user.FirstName, LastName = user.LastName}).ToList();
+            return users.Select(user => new UserModel
+            { UserId = user.Id, FirstName = user.FirstName, LastName = user.LastName }).ToList();
 
         }
 
-        public Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
+        public Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams,
+            string groupName = null)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<VkCollection<User>> GetMembersFromGroup(string _token, GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
+        public async Task<VkCollection<User>> GetMembersFromGroup(string _token,
+            GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
         {
             var api = await Authorize(_token);
 
@@ -177,11 +174,18 @@ namespace VkApi.Services
 
             var api = new VkNet.VkApi(services);
 
-            _token = "6986daabc75dbd577df64039501c1b9347b336547bf508591494d8487c851fb3f071797a56af53b72b1bb";
-            await api.AuthorizeAsync(new ApiAuthParams()
+            try
             {
-                AccessToken = _token
-            });
+                await api.AuthorizeAsync(new ApiAuthParams()
+                {
+                    AccessToken = _token
+                });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Authorize is Failed", e.Message);
+            }
+
             return api;
         }
 
@@ -190,15 +194,20 @@ namespace VkApi.Services
             var confirmFriends = await api.Friends.GetAsync(new FriendsGetParams());
 
             var userIds = new List<long>(confirmFriends.Select(x => x.Id));
-            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
+                userIds);
 
-            if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
+            if (_autoFriendsResponderModel.MessageSettings != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
-            var likeProfileAndLikeWallCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount ? userIds.Count : _autoFriendsResponderModel.WelcomeCount;
+            var likeProfileAndLikeWallCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount
+                ? userIds.Count
+                : _autoFriendsResponderModel.WelcomeCount;
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
             {
@@ -227,15 +236,21 @@ namespace VkApi.Services
             });
 
             var userIds = new List<long>(requestFriends.Items);
-            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
+                userIds);
 
-            if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
+            if (_autoFriendsResponderModel.MessageSettings != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
-            var likeProfileAndLikeWallCountAndAddToFriendCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount ? userIds.Count : _autoFriendsResponderModel.WelcomeCount;
+            var likeProfileAndLikeWallCountAndAddToFriendCount =
+                userIds.Count <= _autoFriendsResponderModel.WelcomeCount
+                    ? userIds.Count
+                    : _autoFriendsResponderModel.WelcomeCount;
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
             {
@@ -270,12 +285,23 @@ namespace VkApi.Services
             var specificUsers = await api.Users.GetAsync(_autoFriendsResponderModel.UserIds);
 
             var userIds = new List<long>(specificUsers.Select(x => x.Id));
-            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, userIds);
+            userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
+                userIds);
 
-            if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
+            if (_autoFriendsResponderModel.MessageSettings != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     userIds.Count, userIds, _autoFriendsResponderModel.Delay);
+            }
+
+            if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
+            {
+                await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, userIds.Count, userIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
@@ -308,12 +334,24 @@ namespace VkApi.Services
 
         private async Task SpecificGroupsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var groupsIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, _autoFriendsResponderModel.GroupsIds, IsGroup: true);
+            var groupsIds = await FilterByConversation(api,
+                _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, _autoFriendsResponderModel.GroupsIds,
+                IsGroup: true);
 
-            if (_autoFriendsResponderModel.MessageSettings != null && _autoFriendsResponderModel.MessageSettings.TextMessages != null && _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
+            if (_autoFriendsResponderModel.MessageSettings != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
+                _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     groupsIds.Count, groupsIds, _autoFriendsResponderModel.Delay, IsGroup: true);
+            }
+
+            if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
+            {
+                await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, groupsIds.Count, groupsIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToWall)
@@ -326,7 +364,8 @@ namespace VkApi.Services
             }
         }
 
-        private async Task<List<long>> FilterByConversation(VkNet.VkApi api, ConversationType conversationType, List<long> Ids, bool IsGroup = false)
+        private async Task<List<long>> FilterByConversation(VkNet.VkApi api, ConversationType conversationType,
+            List<long> Ids, bool IsGroup = false)
         {
             var updateUserIdList = new List<long>();
 
@@ -390,101 +429,164 @@ namespace VkApi.Services
 
         private async Task SetLikeToProfile(VkNet.VkApi api, long userId)
         {
-            var photos = await api.Photo.GetAsync(new PhotoGetParams
+            try
             {
-                OwnerId = userId,
-                AlbumId = PhotoAlbumType.Profile,
-            });
-
-            if (photos != null && photos.Any())
-            {
-                var photoId = (long)photos.First().Id;
-                await api.Likes.AddAsync(new LikesAddParams
+                var photos = await api.Photo.GetAsync(new PhotoGetParams
                 {
-                    Type = LikeObjectType.Photo,
                     OwnerId = userId,
-                    ItemId = photoId
+                    AlbumId = PhotoAlbumType.Profile,
                 });
+
+                if (photos != null && photos.Any())
+                {
+                    var photoId = (long)photos.First().Id;
+                    await api.Likes.AddAsync(new LikesAddParams
+                    {
+                        Type = LikeObjectType.Photo,
+                        OwnerId = userId,
+                        ItemId = photoId
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(
+                    "Set Like to profile exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
             }
         }
 
         private async Task SetLikeToWall(VkNet.VkApi api, long id, bool IsGroup = false)
         {
-            var post = IsGroup
-                ? await api.Wall.GetAsync(new WallGetParams
-                {
-                    OwnerId = -id,
-                    Count = 1
-                })
-                : await api.Wall.GetAsync(new WallGetParams
-                {
-                    OwnerId = id,
-                    Count = 1
-                });
-
-            if (post != null && post.WallPosts.Any())
+            try
             {
-                var postId = (long)post.WallPosts.First().Id;
-                await api.Likes.AddAsync(new LikesAddParams
+                var post = IsGroup
+                    ? await api.Wall.GetAsync(new WallGetParams
+                    {
+                        OwnerId = -id,
+                        Count = 1
+                    })
+                    : await api.Wall.GetAsync(new WallGetParams
+                    {
+                        OwnerId = id,
+                        Count = 1
+                    });
+
+                if (post != null && post.WallPosts.Any())
                 {
-                    Type = LikeObjectType.Post,
-                    OwnerId = id,
-                    ItemId = postId
-                });
+                    var postId = (long)post.WallPosts.First().Id;
+                    await api.Likes.AddAsync(new LikesAddParams
+                    {
+                        Type = LikeObjectType.Post,
+                        OwnerId = id,
+                        ItemId = postId
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(
+                    "Set Like to wall exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
             }
         }
 
-        private async Task SendMessages(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> ids, int delay, bool IsGroup = false)
+        private async Task SendMessages(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> ids,
+            int delay, bool IsGroup = false)
         {
             welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
-            for (int i = 0; i < welcomeCount; i++)
+            try
             {
-                Thread.Sleep(delay * 1000);
+                for (int i = 0; i < welcomeCount; i++)
+                {
+                    Thread.Sleep(delay * 1000);
 
-                var result = IsGroup ?
-                    api.Messages.Send(new MessagesSendParams()
-                    {
-                        PeerId = -ids.ElementAt(i),
-                        Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
-                        RandomId = new Random().Next()
-                    })
-                    : 
-                    api.Messages.Send(new MessagesSendParams()
-                    {
-                        UserId = ids.ElementAt(i),
-                        Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
-                        RandomId = new Random().Next()
-                    });
+                    var result = IsGroup
+                        ? await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            PeerId = -ids.ElementAt(i),
+                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            RandomId = new Random().Next()
+                        })
+                        : await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            UserId = ids.ElementAt(i),
+                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            RandomId = new Random().Next()
+                        });
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(
+                    "Send Messages exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
             }
         }
 
-        private async Task SendPhoto(VkNet.VkApi api, List<string> welcomeMessages, int welcomeCount, List<long> ids, int delay, bool IsGroup = false)
+        private async Task SendMessageWithPhoto(VkNet.VkApi api, List<string> photoFilesPath, List<string> welcomeMessages, int welcomeCount,
+            List<long> ids, int delay, bool IsGroup = false)
         {
-            var t123 = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
+            try
             {
-                Title = "TestAlbums"
-            });
+                welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
+                for (int i = 0; i < welcomeCount; i++)
+                {
+                    Thread.Sleep(delay * 1000);
 
-            // Получить адрес сервера для загрузки.
-            var uploadServer = api.Photo.GetUploadServer(t123.Id);
-            // Загрузить файл.
-            var wc = new WebClient();
-            var responseFile = Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, @"d:/testImage.jpg"));
-            // Сохранить загруженный файл
-            var photos = api.Photo.Save(new PhotoSaveParams
+                    var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
+                    {
+                        Title = "AlbumForLoad"
+                    });
+
+                    // Получить адрес сервера для загрузки.
+                    var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
+
+                    // Загрузить файл.
+                    var wc = new WebClient();
+                    var responseFile =
+                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, photoFilesPath.ElementAt(i)));
+
+                    // Сохранить загруженный файл
+                    var photo = await api.Photo.SaveAsync(new PhotoSaveParams
+                    {
+                        SaveFileResponse = responseFile,
+                        AlbumId = albumForLoad.Id
+                    });
+
+                    var result = IsGroup
+                        ? await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            PeerId = -ids.ElementAt(i),
+                            Attachments = photo,
+                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            RandomId = new Random().Next()
+                        })
+                        : await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            UserId = ids.ElementAt(i),
+                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            RandomId = new Random().Next()
+                        });
+
+                    api.Photo.DeleteAlbum(albumForLoad.Id);
+                }
+            }
+            catch (Exception e)
             {
-                SaveFileResponse = responseFile,
-                AlbumId = t123.Id
-            });
-            api.Messages.Send(new MessagesSendParams
+                _logger.LogError(
+                    "Send Messages with photo exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+            }
+            finally
             {
-                RandomId = 123, // уникальный
-                Attachments = photos,
-                Message = "Message with photo",
-                UserId = 621118712
-            });
+                foreach (var photoFilepath in photoFilesPath.Where(File.Exists))
+                {
+                    File.Delete(photoFilepath);
+                }
+            }
         }
     }
 }

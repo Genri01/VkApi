@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace VkApi.SettingsEvent.AutoResponder
 {
     public class PhotoOrVideoSettings
     {
-        public List<string> links { get; set; }
+        public List<string> PhotoFilesPath { get; set; }
+        public List<string> Messages { get; set; }
     }
 }

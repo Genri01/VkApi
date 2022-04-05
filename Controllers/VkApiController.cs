@@ -23,14 +23,6 @@ namespace VkApi.Controllers
             _vkService = vkService;
         }
 
-        [HttpGet]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetVkSettings([FromHeader] string token, CancellationToken cancellationToken = default)
-        {
-            var settings = await _vkService.GetVkSettings(token);
-            return new OkObjectResult(settings);
-        }
-
         [HttpPost("sendMessages")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> SendMessages([FromHeader] string token, [FromBody] MessagesSendParams messageParams, CancellationToken cancellationToken = default)
@@ -41,17 +33,17 @@ namespace VkApi.Controllers
 
         [HttpPost("addSuggestionsFriends")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AddFriends([FromBody] AddSuggestFriendsModel _addSuggestFriendsModel, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> AddFriends([FromHeader] string token, [FromBody] AddSuggestFriendsModel _addSuggestFriendsModel, CancellationToken cancellationToken = default)
         {
-            await _vkService.AddSuggestFriends(_addSuggestFriendsModel);
+            await _vkService.AddSuggestFriends(token, _addSuggestFriendsModel);
             return new OkResult();
         }
 
         [HttpPost("autoResponderFriends")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AutoResponderFriends([FromBody] AutoFriendsResponderModel _autoFriendsResponderModel, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> AutoResponderFriends([FromHeader] string token, [FromBody] AutoFriendsResponderModel _autoFriendsResponderModel, CancellationToken cancellationToken = default)
         {
-            await _vkService.AutoResponderFriends(_autoFriendsResponderModel);
+            await _vkService.AutoResponderFriends(token, _autoFriendsResponderModel);
             return new OkResult();
         }
 
@@ -65,9 +57,9 @@ namespace VkApi.Controllers
 
         [HttpPost("autoLikingFriendsOrGroups")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AutoLikingFriendsOrGroups([FromBody] AutoLikingFriends autoLikingFriends, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> AutoLikingFriendsOrGroups([FromHeader] string token, [FromBody] AutoLikingFriends autoLikingFriends, CancellationToken cancellationToken = default)
         {
-            await _vkService.AutoLikingFriendsOrGroups(autoLikingFriends);
+            await _vkService.AutoLikingFriendsOrGroups(token, autoLikingFriends);
             return new OkResult();
         }
 

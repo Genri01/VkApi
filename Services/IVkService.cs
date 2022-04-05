@@ -12,11 +12,10 @@ namespace VkApi.Services
 {
     public interface IVkService
     {
-        Task<string> GetVkSettings(string _token);
         Task SendMessage(string _token, MessagesSendParams _messagesSendParams);
-        Task AddSuggestFriends(AddSuggestFriendsModel _addSuggestFriendsModel);
-        Task AutoResponderFriends(AutoFriendsResponderModel _autoFriendsResponderModel);
-        Task AutoLikingFriendsOrGroups(AutoLikingFriends _autoLikingFriends);
+        Task AddSuggestFriends(string _token, AddSuggestFriendsModel _addSuggestFriendsModel);
+        Task AutoResponderFriends(string _token, AutoFriendsResponderModel _autoFriendsResponderModel);
+        Task AutoLikingFriendsOrGroups(string _token, AutoLikingFriends _autoLikingFriends);
 
         Task<IEnumerable<UserModel>> FilterSuggestionsFriends(string _token, SuggestFriendsFilter _friendsFilter);
 

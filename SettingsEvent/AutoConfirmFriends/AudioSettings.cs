@@ -7,6 +7,6 @@ namespace VkApi.SettingsEvent.AutoResponder
 {
     public class AudioSettings
     {
-        public List<string> FilesPath { get; set; }
+        public List<string> AudioFilesPath { get; set; }
     }
 }
