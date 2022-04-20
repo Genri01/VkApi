@@ -13,9 +13,11 @@ using VkApi.SettingsEvent.AutoLikingFriends;
 using VkApi.SettingsEvent.AutoResponder;
 using VkApi.SettingsEvent.SuggestFriendsFilter;
 using VkNet.AudioBypassService.Extensions;
+using VkNet.Enums;
 using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model;
+using VkNet.Model.Attachments;
 using VkNet.Model.RequestParams;
 using VkNet.Utils;
 
@@ -30,98 +32,78 @@ namespace VkApi.Services
             _logger = logger;
         }
 
-        public async Task SendMessage(string _token, MessagesSendParams _messagesSendParams)
-        {
-            var api = await Authorize(_token);
-            await api.Messages.SendAsync(new MessagesSendParams
-            {
-                PeerId = _messagesSendParams.PeerId,
-                Message = _messagesSendParams.Message,
-                RandomId = new Random().Next()
-            });
-        }
-
         public async Task AddSuggestFriends(string _token, AddSuggestFriendsModel _addSuggestFriendsModel)
         {
-            foreach (var token in _addSuggestFriendsModel.AcountTokens)
+            var api = await Authorize(_token);
+
+            var suggestFriends = await api.Friends.GetSuggestionsAsync();
+
+            _addSuggestFriendsModel.RequestCount =
+                (suggestFriends.Count < _addSuggestFriendsModel.RequestCount)
+                    ? suggestFriends.Count
+                    : _addSuggestFriendsModel.RequestCount;
+
+            for (var i = 0; i < _addSuggestFriendsModel.RequestCount; i++)
             {
-                var api = await Authorize(token);
+                Thread.Sleep(_addSuggestFriendsModel.Delay * 1000);
 
-                var suggestFriends = await api.Friends.GetSuggestionsAsync();
+                var userId = suggestFriends.ElementAt(i).Id;
+                await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.welcomeMessage,
+                    false);
 
-                _addSuggestFriendsModel.RequestCount =
-                    (suggestFriends.Count < _addSuggestFriendsModel.RequestCount)
-                        ? suggestFriends.Count
-                        : _addSuggestFriendsModel.RequestCount;
+                if (_addSuggestFriendsModel.SetLikeToProfilePhoto)
+                    await SetLikeToProfile(api, userId);
 
-                for (var i = 0; i < _addSuggestFriendsModel.RequestCount; i++)
-                {
-                    Thread.Sleep(_addSuggestFriendsModel.Delay * 1000);
-
-                    var userId = suggestFriends.ElementAt(i).Id;
-                    await api.Friends.AddAsync(suggestFriends.ElementAt(i).Id, _addSuggestFriendsModel.welcomeMessage,
-                        false);
-
-                    if (_addSuggestFriendsModel.SetLikeToProfilePhoto)
-                        await SetLikeToProfile(api, userId);
-
-                    if (_addSuggestFriendsModel.SetLikeToWall)
-                        await SetLikeToWall(api, userId);
-                }
+                if (_addSuggestFriendsModel.SetLikeToWall)
+                    await SetLikeToWall(api, userId);
             }
         }
 
         public async Task AutoResponderFriends(string _token, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            foreach (var token in _autoFriendsResponderModel.AcountTokens)
-            {
-                var api = await Authorize(token);
+            var api = await Authorize(_token);
 
-                switch (_autoFriendsResponderModel.AutoResponderEventType)
-                {
-                    case AutoResponderEventType.СonfirmedFriendsRequests:
-                        await ConfirmFriendsWorker(api, _autoFriendsResponderModel);
-                        break;
-                    case AutoResponderEventType.IncomingFriendsRequests:
-                        await IncomingFriendsWorker(api, _autoFriendsResponderModel);
-                        break;
-                    case AutoResponderEventType.SpecificUsers:
-                        await SpecificUsersWorker(api, _autoFriendsResponderModel);
-                        break;
-                    case AutoResponderEventType.SpecificGroups:
-                        await SpecificGroupsWorker(api, _autoFriendsResponderModel);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+            switch (_autoFriendsResponderModel.AutoResponderEventType)
+            {
+                case AutoResponderEventType.СonfirmedFriendsRequests:
+                    await ConfirmFriendsWorker(api, _autoFriendsResponderModel);
+                    break;
+                case AutoResponderEventType.IncomingFriendsRequests:
+                    await IncomingFriendsWorker(api, _autoFriendsResponderModel);
+                    break;
+                case AutoResponderEventType.SpecificUsers:
+                    await SpecificUsersWorker(api, _autoFriendsResponderModel);
+                    break;
+                case AutoResponderEventType.SpecificGroups:
+                    await SpecificGroupsWorker(api, _autoFriendsResponderModel);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
         public async Task AutoLikingFriendsOrGroups(string _token, AutoLikingFriends _autoLikingFriends)
         {
-            foreach (var token in _autoLikingFriends.AcountTokens)
+            var api = await Authorize(_token);
+
+            var confirmFriends = await api.Friends.GetAsync(new FriendsGetParams());
+
+            _autoLikingFriends.RequestCount =
+                (confirmFriends.Count < _autoLikingFriends.RequestCount)
+                    ? confirmFriends.Count
+                    : _autoLikingFriends.RequestCount;
+
+            for (var i = 0; i < _autoLikingFriends.RequestCount; i++)
             {
-                var api = await Authorize(token);
+                Thread.Sleep(_autoLikingFriends.Delay * 1000);
 
-                var confirmFriends = await api.Friends.GetAsync(new FriendsGetParams());
+                var userId = confirmFriends.ElementAt(i).Id;
 
-                _autoLikingFriends.RequestCount =
-                    (confirmFriends.Count < _autoLikingFriends.RequestCount)
-                        ? confirmFriends.Count
-                        : _autoLikingFriends.RequestCount;
+                if (_autoLikingFriends.SetLikeToProfilePhoto)
+                    await SetLikeToProfile(api, userId);
 
-                for (var i = 0; i < _autoLikingFriends.RequestCount; i++)
-                {
-                    Thread.Sleep(_autoLikingFriends.Delay * 1000);
-
-                    var userId = confirmFriends.ElementAt(i).Id;
-
-                    if (_autoLikingFriends.SetLikeToProfilePhoto)
-                        await SetLikeToProfile(api, userId);
-
-                    if (_autoLikingFriends.SetLikeToWall)
-                        await SetLikeToWall(api, userId);
-                }
+                if (_autoLikingFriends.SetLikeToWall)
+                    await SetLikeToWall(api, userId);
             }
         }
 
@@ -145,16 +127,32 @@ namespace VkApi.Services
 
         }
 
-        public Task<VkCollection<User>> GetGroups(string _token, GroupsGetMembersParams _groupsGetMembersParams,
-            string groupName = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<VkCollection<User>> GetMembersFromGroup(string _token,
-            GroupsGetMembersParams _groupsGetMembersParams, string groupName = null)
+        public async Task<VkCollection<User>> GetMembersFromGroup(string _token, string groupName)
         {
             var api = await Authorize(_token);
+
+            
+            // Получить адрес сервера для загрузки.
+            var uploadServer = api.Audio.GetUploadServer();
+
+            // Загрузить файл.
+            var wc = new WebClient();
+            var responseFile =
+                Encoding.ASCII.GetString(wc.UploadFile(uploadServer, @"D:\LRMonoPhase4.mp3"));
+
+            // Сохранить загруженный файл
+            var audio = await api.Audio.SaveAsync(responseFile);
+
+            await api.Messages.SendAsync(new MessagesSendParams()
+            {
+                PeerId = 621118712,
+                Attachments = new List<MediaAttachment>
+                {
+                    audio
+                },
+                Message = "Send Audio",
+                RandomId = new Random().Next()
+            });
 
             string groupId = null;
             if (!string.IsNullOrEmpty(groupName))
@@ -164,7 +162,7 @@ namespace VkApi.Services
             }
 
             return await api.Groups.GetMembersAsync(new GroupsGetMembersParams()
-            { GroupId = groupId ?? _groupsGetMembersParams.GroupId, Fields = UsersFields.All });
+            { GroupId = groupId, Fields = UsersFields.FirstNameAcc });
         }
 
         private async Task<VkNet.VkApi> Authorize(string _token)
@@ -203,6 +201,22 @@ namespace VkApi.Services
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+            }
+
+            if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
+            {
+                await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+            }
+
+            if (_autoFriendsResponderModel.AudioSettings != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
+            {
+                await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
+                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
             var likeProfileAndLikeWallCount = userIds.Count <= _autoFriendsResponderModel.WelcomeCount
@@ -247,6 +261,22 @@ namespace VkApi.Services
                     _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
+            if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath != null &&
+                _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
+            {
+                await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+            }
+
+            if (_autoFriendsResponderModel.AudioSettings != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
+            {
+                await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
+                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+            }
+
             var likeProfileAndLikeWallCountAndAddToFriendCount =
                 userIds.Count <= _autoFriendsResponderModel.WelcomeCount
                     ? userIds.Count
@@ -282,9 +312,10 @@ namespace VkApi.Services
 
         private async Task SpecificUsersWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var specificUsers = await api.Users.GetAsync(_autoFriendsResponderModel.UserIds);
+            var userIds = await ResolveGroupOrUserNames(api, _autoFriendsResponderModel.UserNamesOrIds, VkObjectType.User);
 
-            var userIds = new List<long>(specificUsers.Select(x => x.Id));
+            var specificUsers = await api.Users.GetAsync(userIds);
+
             userIds = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
                 userIds);
 
@@ -293,7 +324,7 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
-                    userIds.Count, userIds, _autoFriendsResponderModel.Delay);
+                    _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
@@ -301,7 +332,15 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
             {
                 await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
-                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, userIds.Count, userIds, _autoFriendsResponderModel.Delay);
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+            }
+
+            if (_autoFriendsResponderModel.AudioSettings != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
+            {
+                await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
+                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
@@ -334,8 +373,10 @@ namespace VkApi.Services
 
         private async Task SpecificGroupsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var groupsIds = await FilterByConversation(api,
-                _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, _autoFriendsResponderModel.GroupsIds,
+            var groupsIds = await ResolveGroupOrUserNames(api, _autoFriendsResponderModel.UserNamesOrIds, VkObjectType.Group);
+
+            groupsIds = await FilterByConversation(api,
+                _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, groupsIds,
                 IsGroup: true);
 
             if (_autoFriendsResponderModel.MessageSettings != null &&
@@ -343,7 +384,7 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
-                    groupsIds.Count, groupsIds, _autoFriendsResponderModel.Delay, IsGroup: true);
+                    _autoFriendsResponderModel.WelcomeCount, groupsIds, _autoFriendsResponderModel.Delay, IsGroup: true);
             }
 
             if (_autoFriendsResponderModel.PhotoOrVideoSettings != null &&
@@ -351,7 +392,16 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
             {
                 await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
-                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, groupsIds.Count, groupsIds, _autoFriendsResponderModel.Delay);
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIds, _autoFriendsResponderModel.Delay);
+            }
+
+
+            if (_autoFriendsResponderModel.AudioSettings != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath != null &&
+                _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
+            {
+                await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
+                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIds, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToWall)
@@ -453,6 +503,8 @@ namespace VkApi.Services
                 _logger.LogError(
                     "Set Like to profile exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
                     api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+
+                throw e;
             }
         }
 
@@ -488,6 +540,8 @@ namespace VkApi.Services
                 _logger.LogError(
                     "Set Like to wall exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
                     api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+
+                throw e;
             }
         }
 
@@ -506,13 +560,13 @@ namespace VkApi.Services
                         ? await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             PeerId = -ids.ElementAt(i),
-                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)): null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
-                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
                 }
@@ -522,6 +576,8 @@ namespace VkApi.Services
                 _logger.LogError(
                     "Send Messages exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
                     api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+
+                throw e;
             }
         }
 
@@ -561,13 +617,14 @@ namespace VkApi.Services
                         {
                             PeerId = -ids.ElementAt(i),
                             Attachments = photo,
-                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
-                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Attachments = photo,
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
 
@@ -579,6 +636,8 @@ namespace VkApi.Services
                 _logger.LogError(
                     "Send Messages with photo exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
                     api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+
+                throw e;
             }
             finally
             {
@@ -587,6 +646,81 @@ namespace VkApi.Services
                     File.Delete(photoFilepath);
                 }
             }
+        }
+
+        private async Task SendMessageWithAudio(VkNet.VkApi api, List<string> audioFilesPath, List<string> welcomeMessages, int welcomeCount,
+            List<long> ids, int delay, bool IsGroup = false)
+        {
+            try
+            {
+                welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
+
+                for (int i = 0; i < welcomeCount; i++)
+                {
+                    Thread.Sleep(delay * 1000);
+
+                    // Получить адрес сервера для загрузки.
+                    var uploadServer = api.Audio.GetUploadServer();
+                    
+                    // Загрузить файл.
+                    var wc = new WebClient();
+                    var responseFile =
+                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer, audioFilesPath.ElementAt(i)));
+
+                    // Сохранить загруженный файл
+                    var audio = await api.Audio.SaveAsync(responseFile);
+
+                    var result = IsGroup
+                        ? await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            PeerId = -ids.ElementAt(i),
+                            Attachments = new List<MediaAttachment>
+                            {
+                                audio
+                            },
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)):null,
+                            RandomId = new Random().Next()
+                        })
+                        : await api.Messages.SendAsync(new MessagesSendParams()
+                        {
+                            UserId = ids.ElementAt(i),
+                            Attachments = new List<MediaAttachment>
+                            {
+                                audio
+                            },
+                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            RandomId = new Random().Next()
+                        });
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(
+                    "Send Messages with audio exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+                throw e;
+            }
+            finally
+            {
+                foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
+                {
+                    File.Delete(audioFilepath);
+                }
+            }
+        }
+
+        private async Task<List<long>> ResolveGroupOrUserNames(VkNet.VkApi api, List<string> names, VkObjectType type)
+        {
+            var ids = new List<long>();
+
+            foreach (var name in names.Where(name => !string.IsNullOrEmpty(name)))
+            {
+                var item = await api.Utils.ResolveScreenNameAsync(name);
+                if (item.Type == type && item.Id.HasValue)
+                    ids.Add(item.Id.Value);
+            }
+
+            return ids;
         }
     }
 }

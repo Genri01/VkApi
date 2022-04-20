@@ -7,7 +7,7 @@ namespace VkApi.SettingsEvent.AutoSecretary
 {
     public class AutoSecretaryResponder
     {
-        public List<string> AcountTokens { get; set; } // токены пользователей
+        public string AcountToken { get; set; } // токены пользователей
         public int CountAnswer { get; set; } //количество автоответов
         public List<Rules> Rules { get; set; } //количество автоответов
     }

@@ -7,8 +7,6 @@ using VkApi.SettingsEvent.AutoAddedFriends;
 using VkApi.SettingsEvent.AutoLikingFriends;
 using VkApi.SettingsEvent.AutoResponder;
 using VkApi.SettingsEvent.SuggestFriendsFilter;
-using VkNet.Enums.SafetyEnums;
-using VkNet.Model.RequestParams;
 
 namespace VkApi.Controllers
 {
@@ -21,14 +19,6 @@ namespace VkApi.Controllers
         public VkApiController(IVkService vkService)
         {
             _vkService = vkService;
-        }
-
-        [HttpPost("sendMessages")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> SendMessages([FromHeader] string token, [FromBody] MessagesSendParams messageParams, CancellationToken cancellationToken = default)
-        {
-            await _vkService.SendMessage(token, messageParams);
-            return new OkResult();
         }
 
         [HttpPost("addSuggestionsFriends")]
@@ -63,12 +53,19 @@ namespace VkApi.Controllers
             return new OkResult();
         }
 
-        //[HttpPost("getMembersFromGroup")]
-        //[ProducesResponseType((int)HttpStatusCode.OK)]
-        //public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] GroupsGetMembersParams groupsGetMembersParams, string groupName, CancellationToken cancellationToken = default)
-        //{
-        //    var groups = await _vkService.Get(token, groupsGetMembersParams, groupName);
-        //    return new OkObjectResult(groups);
-        //}
+        /// <summary>
+        /// Retrieves a specific product by unique id
+        /// </summary>
+        /// <remarks>Awesomeness!</remarks>
+        /// <response code="200">Product created</response>
+        /// <response code="400">Product has missing/invalid values</response>
+        /// <response code="500">Oops! Can't create your product right now</response>
+        [HttpPost("getMembersFromGroup")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] string groupName, CancellationToken cancellationToken = default)
+        {
+            var groups = await _vkService.GetMembersFromGroup(token, groupName);
+            return new OkObjectResult(groups);
+        }
     }
 }
