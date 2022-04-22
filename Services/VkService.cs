@@ -191,7 +191,7 @@ namespace VkApi.Services
         {
             var myFriends = await api.Friends.GetAsync(new FriendsGetParams());
 
-            var confirmFriends = myFriends.Where(x => x?.IsClosed == false && x?.IsDeactivated == false).ToList();
+            var confirmFriends = myFriends.Where(x => x?.IsClosed != true && x?.IsDeactivated != true).ToList();
             
             var userIds = new List<long>(confirmFriends.Select(x => x.Id));
 
@@ -317,7 +317,7 @@ namespace VkApi.Services
             var userIds = await ResolveGroupOrUserNames(api, _autoFriendsResponderModel.UserNamesOrIds, VkObjectType.User);
 
             var specificUsers =
-                (await api.Users.GetAsync(userIds)).Where(x => x?.IsClosed == false && x?.IsDeactivated == false);
+                (await api.Users.GetAsync(userIds)).Where(x => x?.IsClosed != true && x?.IsDeactivated != true);
 
             if (_autoFriendsResponderModel.MessageSettings != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
