@@ -189,8 +189,10 @@ namespace VkApi.Services
 
         private async Task ConfirmFriendsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var confirmFriends = (await api.Friends.GetAsync(new FriendsGetParams())).Where(x => x?.IsClosed == false && x?.IsDeactivated == false); ;
+            var myFriends = await api.Friends.GetAsync(new FriendsGetParams());
 
+            var confirmFriends = myFriends.Where(x => x?.IsClosed == false && x?.IsDeactivated == false).ToList();
+            
             var userIds = new List<long>(confirmFriends.Select(x => x.Id));
 
             if (_autoFriendsResponderModel.MessageSettings != null &&
