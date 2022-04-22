@@ -195,15 +195,15 @@ namespace VkApi.Services
             });
 
             var confirmFriends = myFriends.Where(x => x?.IsClosed != true && x?.IsDeactivated != true).ToList();
-            
             var userIds = new List<long>(confirmFriends.Select(x => x.Id));
+            var specificUsersIdsWhereAccessWriteMessage = confirmFriends.Where(x => x.CanWritePrivateMessage).Select(x => x.Id).ToList();
 
             if (_autoFriendsResponderModel.MessageSettings != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 var userIdsForMessage = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
-                    userIds);
+                    specificUsersIdsWhereAccessWriteMessage);
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     _autoFriendsResponderModel.WelcomeCount, userIdsForMessage, _autoFriendsResponderModel.Delay);
             }
@@ -256,6 +256,20 @@ namespace VkApi.Services
 
             var userIds = new List<long>(requestFriends.Items);
 
+            var likeProfileAndLikeWallCountAndAddToFriendCount =
+                userIds.Count <= _autoFriendsResponderModel.WelcomeCount
+                    ? userIds.Count
+                    : _autoFriendsResponderModel.WelcomeCount;
+
+            if (_autoFriendsResponderModel.AddToFriends)
+            {
+                for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i++)
+                {
+                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
+                    await api.Friends.AddAsync(requestFriends.Items.ElementAt(i), "", false);
+                }
+            }
+
             if (_autoFriendsResponderModel.MessageSettings != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
@@ -281,11 +295,6 @@ namespace VkApi.Services
                 await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
                     _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
             }
-
-            var likeProfileAndLikeWallCountAndAddToFriendCount =
-                userIds.Count <= _autoFriendsResponderModel.WelcomeCount
-                    ? userIds.Count
-                    : _autoFriendsResponderModel.WelcomeCount;
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
             {
@@ -304,15 +313,6 @@ namespace VkApi.Services
                     await SetLikeToWall(api, requestFriends.Items.ElementAt(i));
                 }
             }
-
-            if (_autoFriendsResponderModel.AddToFriends)
-            {
-                for (int i = 0; i < likeProfileAndLikeWallCountAndAddToFriendCount; i++)
-                {
-                    Thread.Sleep(_autoFriendsResponderModel.Delay * 1000);
-                    await api.Friends.AddAsync(requestFriends.Items.ElementAt(i), "", false);
-                }
-            }
         }
 
         private async Task SpecificUsersWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
@@ -322,12 +322,14 @@ namespace VkApi.Services
             var specificUsers =
                 (await api.Users.GetAsync(userIds)).Where(x => x?.IsClosed != true && x?.IsDeactivated != true);
 
+            var specificUsersIdsWhereAccessWriteMessage = specificUsers.Where(x => x.CanWritePrivateMessage).Select(x => x.Id).ToList();
+
             if (_autoFriendsResponderModel.MessageSettings != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
                 _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
             {
                 var userIdsForMessage = await FilterByConversation(api, _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent,
-                    userIds);
+                    specificUsersIdsWhereAccessWriteMessage);
                 await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
                     _autoFriendsResponderModel.WelcomeCount, userIdsForMessage, _autoFriendsResponderModel.Delay);
             }
@@ -337,7 +339,7 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
             {
                 await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
-                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+                    _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, specificUsersIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.AudioSettings != null &&
@@ -345,7 +347,7 @@ namespace VkApi.Services
                 _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
             {
                 await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
-                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, userIds, _autoFriendsResponderModel.Delay);
+                    _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, specificUsersIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
             }
 
             if (_autoFriendsResponderModel.SetLikeToProfile)
@@ -378,15 +380,18 @@ namespace VkApi.Services
 
         private async Task SpecificGroupsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var groupsIds = (await api.Groups.GetByIdAsync(_autoFriendsResponderModel.UserNamesOrIds, null, GroupsFields.All)).Where(x => x.IsClosed == GroupPublicity.Public).Select(x => x.Id).ToList();
-            if (groupsIds != null && groupsIds.Any())
+            var groups  = (await api.Groups.GetByIdAsync(_autoFriendsResponderModel.GroupNamesOrIds, null, GroupsFields.All)).Where(x => x.IsClosed == GroupPublicity.Public);
+            if (groups != null && groups.Any())
             {
+                var groupsIds = groups.Select(x => x.Id).ToList();
+                var groupsIdsWhereAccessWriteMessage = groups.Where(x => x.IsMessagesAllowed == true).Select(x => x.Id).ToList();
+
                 if (_autoFriendsResponderModel.MessageSettings != null &&
                     _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
                     _autoFriendsResponderModel.MessageSettings.TextMessages.Any())
                 {
                     var groupsIdsForMessage = await FilterByConversation(api,
-                        _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, groupsIds,
+                        _autoFriendsResponderModel.MessageSettings.ConversationTypeEvent, groupsIdsWhereAccessWriteMessage,
                         IsGroup: true);
 
                     await SendMessages(api, _autoFriendsResponderModel.MessageSettings.TextMessages,
@@ -398,7 +403,7 @@ namespace VkApi.Services
                     _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
                 {
                     await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
-                        _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIds, _autoFriendsResponderModel.Delay);
+                        _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
                 }
 
 
@@ -407,7 +412,7 @@ namespace VkApi.Services
                     _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
                 {
                     await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
-                        _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIds, _autoFriendsResponderModel.Delay);
+                        _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
                 }
 
                 if (_autoFriendsResponderModel.SetLikeToWall)
@@ -519,17 +524,12 @@ namespace VkApi.Services
         {
             try
             {
-                var post = IsGroup
-                    ? await api.Wall.GetAsync(new WallGetParams
-                    {
-                        OwnerId = -id,
-                        Count = 1
-                    })
-                    : await api.Wall.GetAsync(new WallGetParams
-                    {
-                        OwnerId = id,
-                        Count = 1
-                    });
+                id = IsGroup ? -id : id;
+                var post = await api.Wall.GetAsync(new WallGetParams
+                {
+                    OwnerId = id,
+                    Count = 1
+                });
 
                 if (post != null && post.WallPosts.Any())
                 {
