@@ -715,9 +715,16 @@ namespace VkApi.Services
 
             foreach (var name in names.Where(name => !string.IsNullOrEmpty(name)))
             {
-                var item = await api.Utils.ResolveScreenNameAsync(name);
-                if (item.Type == type && item.Id.HasValue)
-                    ids.Add(item.Id.Value);
+                if (long.TryParse(name, out var id))
+                {
+                    ids.Add(id);
+                }
+                else
+                {
+                    var item = await api.Utils.ResolveScreenNameAsync(name);
+                    if (item.Type == type && item.Id.HasValue)
+                        ids.Add(item.Id.Value);
+                }
             }
 
             return ids;
