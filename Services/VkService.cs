@@ -496,7 +496,7 @@ namespace VkApi.Services
 
                 if (photos != null && photos.Any())
                 {
-                    var photoId = (long)photos.First().Id;
+                    var photoId = (long)photos.Last().Id;
                     await api.Likes.AddAsync(new LikesAddParams
                     {
                         Type = LikeObjectType.Photo,
