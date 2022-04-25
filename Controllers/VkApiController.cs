@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.IO;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using VkApi.Services;
@@ -66,6 +69,30 @@ namespace VkApi.Controllers
         {
             var groups = await _vkService.GetMembersFromGroup(token, groupName);
             return new OkObjectResult(groups);
+        }
+
+
+        [HttpGet("GetPath")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> GetPath(CancellationToken cancellationToken = default)
+        {
+
+            string homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
+                               Environment.OSVersion.Platform == PlatformID.MacOSX)
+                ? Environment.GetEnvironmentVariable("HOME")
+                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+
+            string currentDirectory = Directory.GetCurrentDirectory();
+
+            //if (!Directory.Exists(Path.Combine(homePath, "ShareFolderForVk")))
+            //    Directory.CreateDirectory(Path.Combine(homePath, "ShareFolderForVk"));
+
+            string str = "";
+
+            str = str + "homePath: " + homePath + " ";
+            str = str + "currentDirectory: " + currentDirectory;
+
+            return new OkObjectResult(str);
         }
     }
 }
