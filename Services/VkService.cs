@@ -131,7 +131,7 @@ namespace VkApi.Services
         {
             var api = await Authorize(_token);
 
-            
+
             // Получить адрес сервера для загрузки.
             var uploadServer = api.Audio.GetUploadServer();
 
@@ -320,7 +320,7 @@ namespace VkApi.Services
             var userIds = await ResolveGroupOrUserNames(api, _autoFriendsResponderModel.UserNamesOrIds, VkObjectType.User);
 
             var specificUsers =
-                (await api.Users.GetAsync(userIds)).Where(x => x?.IsClosed != true && x?.IsDeactivated != true);
+                (await api.Users.GetAsync(userIds, ProfileFields.All)).Where(x => x?.IsClosed != true && x?.IsDeactivated != true);
 
             var specificUsersIdsWhereAccessWriteMessage = specificUsers.Where(x => x.CanWritePrivateMessage).Select(x => x.Id).ToList();
 
@@ -380,11 +380,12 @@ namespace VkApi.Services
 
         private async Task SpecificGroupsWorker(VkNet.VkApi api, AutoFriendsResponderModel _autoFriendsResponderModel)
         {
-            var groups  = (await api.Groups.GetByIdAsync(_autoFriendsResponderModel.GroupNamesOrIds, null, GroupsFields.All)).Where(x => x.IsClosed == GroupPublicity.Public);
+            var groups = (await api.Groups.GetByIdAsync(_autoFriendsResponderModel.GroupNamesOrIds, null, GroupsFields.All)).Where(x => x.IsClosed == GroupPublicity.Public);
+
             if (groups != null && groups.Any())
             {
                 var groupsIds = groups.Select(x => x.Id).ToList();
-                var groupsIdsWhereAccessWriteMessage = groups.Where(x => x.IsMessagesAllowed == true).Select(x => x.Id).ToList();
+                var groupsIdsWhereAccessWriteMessage = groups.Select(x => x.Id).ToList();
 
                 if (_autoFriendsResponderModel.MessageSettings != null &&
                     _autoFriendsResponderModel.MessageSettings.TextMessages != null &&
@@ -557,17 +558,17 @@ namespace VkApi.Services
         {
             welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
-            try
+            for (int i = 0; i < welcomeCount; i++)
             {
-                for (int i = 0; i < welcomeCount; i++)
-                {
-                    Thread.Sleep(delay * 1000);
+                Thread.Sleep(delay * 1000);
 
+                try
+                {
                     var result = IsGroup
                         ? await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             PeerId = -ids.ElementAt(i),
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)): null,
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
@@ -576,15 +577,14 @@ namespace VkApi.Services
                             Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(
-                    "Send Messages exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
-                    api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
 
-                throw e;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(
+                        "Send Messages exception. Profile Info: FirstName: {FirstName}, LastName: {LastName}. Exception: {exception}",
+                        api.Account.GetProfileInfo().FirstName, api.Account.GetProfileInfo().LastName, e.Message);
+                }
             }
         }
 
@@ -598,6 +598,9 @@ namespace VkApi.Services
                 for (int i = 0; i < welcomeCount; i++)
                 {
                     Thread.Sleep(delay * 1000);
+
+                    if (!File.Exists(photoFilesPath.ElementAt(i)))
+                        throw new Exception($"File '{photoFilesPath.ElementAt(i)}' Is not Found");
 
                     var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
                     {
@@ -634,8 +637,6 @@ namespace VkApi.Services
                             Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
-
-                    api.Photo.DeleteAlbum(albumForLoad.Id);
                 }
             }
             catch (Exception e)
@@ -666,9 +667,12 @@ namespace VkApi.Services
                 {
                     Thread.Sleep(delay * 1000);
 
+                    if (!File.Exists(audioFilesPath.ElementAt(i)))
+                        throw new Exception($"File '{audioFilesPath.ElementAt(i)}' Is not Found");
+
                     // Получить адрес сервера для загрузки.
                     var uploadServer = api.Audio.GetUploadServer();
-                    
+
                     // Загрузить файл.
                     var wc = new WebClient();
                     var responseFile =
@@ -685,7 +689,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)):null,
+                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
