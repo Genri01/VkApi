@@ -84,8 +84,8 @@ namespace VkApi.Controllers
 
             string currentDirectory = Directory.GetCurrentDirectory();
 
-            //if (!Directory.Exists(Path.Combine(homePath, "ShareFolderForVk")))
-            //    Directory.CreateDirectory(Path.Combine(homePath, "ShareFolderForVk"));
+            if (!Directory.Exists(Path.Combine(homePath, "ShareFolderForVk")))
+                Directory.CreateDirectory(Path.Combine(currentDirectory, "ShareFolderForVk"));
 
             string str = "";
 
