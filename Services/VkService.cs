@@ -593,6 +593,14 @@ namespace VkApi.Services
         {
             try
             {
+                string homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
+                                   Environment.OSVersion.Platform == PlatformID.MacOSX)
+                    ? Environment.GetEnvironmentVariable("HOME")
+                    : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+
+                if (!Directory.Exists(Path.Combine(homePath, "ShareFolderForVk")))
+                    Directory.CreateDirectory(Path.Combine(homePath, "ShareFolderForVk"));
+
                 welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
                 for (int i = 0; i < welcomeCount; i++)
