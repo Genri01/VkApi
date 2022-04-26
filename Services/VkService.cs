@@ -760,13 +760,13 @@ namespace VkApi.Services
                 Title = "AlbumForLoadTest"
             });
 
-            //// Получить адрес сервера для загрузки.
-            //var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
+            // Получить адрес сервера для загрузки.
+            var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
 
-            //// Загрузить файл.
-            //var wc = new WebClient();
-            //var responseFile =
-            //    Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
+            // Загрузить файл.
+            var wc = new WebClient();
+            var responseFile =
+                Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
 
             //// Сохранить загруженный файл
             //var photo = await api.Photo.SaveAsync(new PhotoSaveParams
@@ -775,7 +775,7 @@ namespace VkApi.Services
             //    AlbumId = albumForLoad.Id
             //});
 
-            return pathToFile;
+            return uploadServer.UploadUrl;
         }
     }
 }
