@@ -713,10 +713,10 @@ namespace VkApi.Services
             }
             finally
             {
-                foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
-                {
-                    File.Delete(audioFilepath);
-                }
+                //foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
+                //{
+                //    File.Delete(audioFilepath);
+                //}
             }
         }
 
@@ -739,63 +739,6 @@ namespace VkApi.Services
             }
 
             return ids;
-        }
-
-        public async Task<string> GetFileInfo(string path)
-        {
-            var IsGroup = false;
-            var _token = "1d047d93ca7dd1ba7231ad6511617cac2ff70408feab8c03a399d92bc3b6aff816bb31d62e0b7f795d913";
-            var api = await Authorize(_token);
-
-            var homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
-                               Environment.OSVersion.Platform == PlatformID.MacOSX)
-                ? Environment.GetEnvironmentVariable("HOME")
-                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
-
-            //var pathToFile = Path.Combine(homePath, "test.jpg");
-
-            var pathToFile = "/home/inbox/webapps/botinviter.ru/server/uploads/images/test.jpg";
-
-            if (!File.Exists(pathToFile))
-                throw new Exception($"File '{pathToFile}' Is not Found");
-
-            var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
-            {
-                Title = "AlbumForLoad"
-            });
-
-            // Получить адрес сервера для загрузки.
-            var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
-
-            // Загрузить файл.
-            var wc = new WebClient();
-            var responseFile =
-                Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
-
-            // Сохранить загруженный файл
-            var photo = await api.Photo.SaveAsync(new PhotoSaveParams
-            {
-                SaveFileResponse = responseFile,
-                AlbumId = albumForLoad.Id
-            });
-
-            var result = IsGroup
-                ? await api.Messages.SendAsync(new MessagesSendParams()
-                {
-                    PeerId = -621118712,
-                    Attachments = photo,
-                    Message = "Test Message With Photo",
-                    RandomId = new Random().Next()
-                })
-                : await api.Messages.SendAsync(new MessagesSendParams()
-                {
-                    UserId = 621118712,
-                    Attachments = photo,
-                    Message = "Test Message With Photo 2",
-                    RandomId = new Random().Next()
-                });
-
-            return "AllOk";
         }
     }
 }

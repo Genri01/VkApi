@@ -70,15 +70,5 @@ namespace VkApi.Controllers
             var groups = await _vkService.GetMembersFromGroup(token, groupName);
             return new OkObjectResult(groups);
         }
-
-
-        [HttpGet("GetPath")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetPath(CancellationToken cancellationToken = default)
-        {
-            var result = await _vkService.GetFileInfo(String.Empty);
-
-            return new OkObjectResult(result);
-        }
     }
 }
