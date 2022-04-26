@@ -4,8 +4,4 @@ sudo nano /etc/systemd/system/vkapi.service
 /home/inbox/webapps/botinviter.ru/vkapi/bin/Release/netcoreapp3.1
 
 
-dotnet publish --configuration Release
-sudo systemctl stop vkapi.service
-sudo systemctl daemon-reload
-sudo systemctl start vkapi.service
-sudo systemctl status vkapi.service
+dotnet publish --configuration Release; sudo systemctl stop vkapi.service; sudo systemctl daemon-reload; sudo systemctl start vkapi.service; sudo systemctl status vkapi.service
