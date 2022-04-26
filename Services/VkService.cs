@@ -700,7 +700,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Message = (welcomeMessages != null && welcomeMessages.Any()) ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)): null,
                             RandomId = new Random().Next()
                         });
                 }
