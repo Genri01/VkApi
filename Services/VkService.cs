@@ -743,19 +743,39 @@ namespace VkApi.Services
 
         public async Task<string> GetFileInfo(string path)
         {
+            var _token = "1d047d93ca7dd1ba7231ad6511617cac2ff70408feab8c03a399d92bc3b6aff816bb31d62e0b7f795d913";
+            var api = await Authorize(_token);
+
             var homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
                                Environment.OSVersion.Platform == PlatformID.MacOSX)
                 ? Environment.GetEnvironmentVariable("HOME")
                 : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
-            return homePath;
+            var pathToFile = Path.Combine(homePath, "test.jpg");
+            if (!File.Exists(pathToFile))
+                throw new Exception($"File '{pathToFile}' Is not Found");
 
-            //var pathToFile = Path.Combine(homePath, "inbox/ftp/test.jpg");
-            
-            //if (!File.Exists(pathToFile))
-            //    return "File not found " + pathToFile;
+            var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
+            {
+                Title = "AlbumForLoadTest"
+            });
 
-            //return path;
+            //// Получить адрес сервера для загрузки.
+            //var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
+
+            //// Загрузить файл.
+            //var wc = new WebClient();
+            //var responseFile =
+            //    Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
+
+            //// Сохранить загруженный файл
+            //var photo = await api.Photo.SaveAsync(new PhotoSaveParams
+            //{
+            //    SaveFileResponse = responseFile,
+            //    AlbumId = albumForLoad.Id
+            //});
+
+            return pathToFile;
         }
     }
 }
