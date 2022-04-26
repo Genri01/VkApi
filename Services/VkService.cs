@@ -743,6 +743,7 @@ namespace VkApi.Services
 
         public async Task<string> GetFileInfo(string path)
         {
+            var IsGroup = false;
             var _token = "1d047d93ca7dd1ba7231ad6511617cac2ff70408feab8c03a399d92bc3b6aff816bb31d62e0b7f795d913";
             var api = await Authorize(_token);
 
@@ -774,6 +775,22 @@ namespace VkApi.Services
                 SaveFileResponse = responseFile,
                 AlbumId = albumForLoad.Id
             });
+
+            var result = IsGroup
+                ? await api.Messages.SendAsync(new MessagesSendParams()
+                {
+                    PeerId = -621118712,
+                    Attachments = photo,
+                    Message = "Test Message With Photo",
+                    RandomId = new Random().Next()
+                })
+                : await api.Messages.SendAsync(new MessagesSendParams()
+                {
+                    UserId = 621118712,
+                    Attachments = photo,
+                    Message = "Test Message With Photo 2",
+                    RandomId = new Random().Next()
+                });
 
             return "AllOk";
         }
