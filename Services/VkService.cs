@@ -649,10 +649,10 @@ namespace VkApi.Services
             }
             finally
             {
-                foreach (var photoFilepath in photoFilesPath.Where(File.Exists))
-                {
-                    File.Delete(photoFilepath);
-                }
+                //foreach (var photoFilepath in photoFilesPath.Where(File.Exists))
+                //{
+                //    File.Delete(photoFilepath);
+                //}
             }
         }
 
@@ -713,10 +713,10 @@ namespace VkApi.Services
             }
             finally
             {
-                //foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
-                //{
-                //    File.Delete(audioFilepath);
-                //}
+                foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
+                {
+                    File.Delete(audioFilepath);
+                }
             }
         }
 
