@@ -747,14 +747,16 @@ namespace VkApi.Services
             var _token = "1d047d93ca7dd1ba7231ad6511617cac2ff70408feab8c03a399d92bc3b6aff816bb31d62e0b7f795d913";
             var api = await Authorize(_token);
 
-            //var homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
-            //                   Environment.OSVersion.Platform == PlatformID.MacOSX)
-            //    ? Environment.GetEnvironmentVariable("HOME")
-            //    : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+            var homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
+                               Environment.OSVersion.Platform == PlatformID.MacOSX)
+                ? Environment.GetEnvironmentVariable("HOME")
+                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
-            //var pathToFile = Path.Combine(homePath, "test.jpg");
+            var pathToFile = Path.Combine(homePath, "test.jpg");
 
-            var pathToFile = Path.Combine("var\\www", "test.jpg");
+            return pathToFile;
+
+            //var pathToFile = Path.Combine("var\\www", "test.jpg");
 
             if (!File.Exists(pathToFile))
                 throw new Exception($"File '{pathToFile}' Is not Found");
