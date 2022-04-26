@@ -568,13 +568,13 @@ namespace VkApi.Services
                         ? await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             PeerId = -ids.ElementAt(i),
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
 
@@ -593,6 +593,7 @@ namespace VkApi.Services
         {
             try
             {
+
                 welcomeCount = ids.Count < welcomeCount ? ids.Count : welcomeCount;
 
                 for (int i = 0; i < welcomeCount; i++)
@@ -627,14 +628,14 @@ namespace VkApi.Services
                         {
                             PeerId = -ids.ElementAt(i),
                             Attachments = photo,
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
                             Attachments = photo,
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         });
                 }
@@ -689,7 +690,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
@@ -699,7 +700,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)),
                             RandomId = new Random().Next()
                         });
                 }
