@@ -754,7 +754,7 @@ namespace VkApi.Services
 
             //var pathToFile = Path.Combine(homePath, "test.jpg");
 
-            var pathToFile = "/var/www/test.jpg";
+            var pathToFile = "/home/inbox/webapps/botinviter.ru/server/uploads/images/test.jpg";
 
             if (!File.Exists(pathToFile))
                 throw new Exception($"File '{pathToFile}' Is not Found");
