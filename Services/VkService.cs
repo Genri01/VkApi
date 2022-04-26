@@ -740,5 +740,20 @@ namespace VkApi.Services
 
             return ids;
         }
+
+        public async Task<string> GetFileInfo(string path)
+        {
+            var homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
+                               Environment.OSVersion.Platform == PlatformID.MacOSX)
+                ? Environment.GetEnvironmentVariable("HOME")
+                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+
+            var pathToFile = Path.Combine(homePath, "inbox/ftp/test.jpg");
+            
+            if (!File.Exists(pathToFile))
+                return "File not found " + pathToFile;
+
+            return path;
+        }
     }
 }

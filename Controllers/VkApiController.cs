@@ -76,23 +76,9 @@ namespace VkApi.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> GetPath(CancellationToken cancellationToken = default)
         {
+            var result = await _vkService.GetFileInfo(String.Empty);
 
-            string homePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
-                               Environment.OSVersion.Platform == PlatformID.MacOSX)
-                ? Environment.GetEnvironmentVariable("HOME")
-                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
-
-            string currentDirectory = Directory.GetCurrentDirectory();
-
-            if (!Directory.Exists(Path.Combine(homePath, "ShareFolderForVk")))
-                Directory.CreateDirectory(Path.Combine(currentDirectory, "ShareFolderForVk"));
-
-            string str = "";
-
-            str = str + "homePath: " + homePath + " ";
-            str = str + "currentDirectory: " + currentDirectory;
-
-            return new OkObjectResult(str);
+            return new OkObjectResult(result);
         }
     }
 }

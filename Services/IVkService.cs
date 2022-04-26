@@ -14,9 +14,8 @@ namespace VkApi.Services
         Task AddSuggestFriends(string _token, AddSuggestFriendsModel _addSuggestFriendsModel);
         Task AutoResponderFriends(string _token, AutoFriendsResponderModel _autoFriendsResponderModel);
         Task AutoLikingFriendsOrGroups(string _token, AutoLikingFriends _autoLikingFriends);
-
         Task<IEnumerable<UserModel>> FilterSuggestionsFriends(string _token, SuggestFriendsFilter _friendsFilter);
-
         Task<VkCollection<User>> GetMembersFromGroup(string _token, string groupName);
+        Task<string> GetFileInfo(string path);
     }
 }
