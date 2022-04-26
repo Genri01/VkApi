@@ -748,12 +748,14 @@ namespace VkApi.Services
                 ? Environment.GetEnvironmentVariable("HOME")
                 : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
-            var pathToFile = Path.Combine(homePath, "inbox/ftp/test.jpg");
-            
-            if (!File.Exists(pathToFile))
-                return "File not found " + pathToFile;
+            return homePath;
 
-            return path;
+            //var pathToFile = Path.Combine(homePath, "inbox/ftp/test.jpg");
+            
+            //if (!File.Exists(pathToFile))
+            //    return "File not found " + pathToFile;
+
+            //return path;
         }
     }
 }
