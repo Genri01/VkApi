@@ -768,14 +768,14 @@ namespace VkApi.Services
             var responseFile =
                 Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
 
-            //// Сохранить загруженный файл
-            //var photo = await api.Photo.SaveAsync(new PhotoSaveParams
-            //{
-            //    SaveFileResponse = responseFile,
-            //    AlbumId = albumForLoad.Id
-            //});
+            // Сохранить загруженный файл
+            var photo = await api.Photo.SaveAsync(new PhotoSaveParams
+            {
+                SaveFileResponse = responseFile,
+                AlbumId = albumForLoad.Id
+            });
 
-            return uploadServer.UploadUrl;
+            return responseFile;
         }
     }
 }
