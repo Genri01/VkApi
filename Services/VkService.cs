@@ -755,8 +755,26 @@ namespace VkApi.Services
             if (!File.Exists(pathToFile))
                 throw new Exception($"File '{pathToFile}' Is not Found");
 
-            await SendMessageWithPhoto(api, new List<string> { pathToFile }, new List<string> { "testPhoto" }, 1, new List<long> {621118712}, 0);
-            
+            var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
+            {
+                Title = "AlbumForLoad"
+            });
+
+            // Получить адрес сервера для загрузки.
+            var uploadServer = api.Photo.GetUploadServer(albumForLoad.Id);
+
+            // Загрузить файл.
+            var wc = new WebClient();
+            var responseFile =
+                Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, pathToFile));
+
+            // Сохранить загруженный файл
+            var photo = await api.Photo.SaveAsync(new PhotoSaveParams
+            {
+                SaveFileResponse = responseFile,
+                AlbumId = albumForLoad.Id
+            });
+
             return "AllOk";
         }
     }
