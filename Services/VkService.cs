@@ -752,11 +752,9 @@ namespace VkApi.Services
                 ? Environment.GetEnvironmentVariable("HOME")
                 : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
-            var pathToFile = Path.Combine(homePath, "test.jpg");
+            //var pathToFile = Path.Combine(homePath, "test.jpg");
 
-            return pathToFile;
-
-            //var pathToFile = Path.Combine("var\\www", "test.jpg");
+            var pathToFile = "/var/www/test.jpg";
 
             if (!File.Exists(pathToFile))
                 throw new Exception($"File '{pathToFile}' Is not Found");
