@@ -568,13 +568,13 @@ namespace VkApi.Services
                         ? await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             PeerId = -ids.ElementAt(i),
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)) : null,
                             RandomId = new Random().Next()
                         });
 
@@ -600,8 +600,8 @@ namespace VkApi.Services
                 {
                     Thread.Sleep(delay * 1000);
 
-                    if (!File.Exists(photoFilesPath.ElementAt(i)))
-                        throw new Exception($"File '{photoFilesPath.ElementAt(i)}' Is not Found");
+                    if (!File.Exists(photoFilesPath.First()))
+                        throw new Exception($"File '{photoFilesPath.First()}' Is not Found");
 
                     var albumForLoad = api.Photo.CreateAlbum(new PhotoCreateAlbumParams
                     {
@@ -614,7 +614,7 @@ namespace VkApi.Services
                     // Загрузить файл.
                     var wc = new WebClient();
                     var responseFile =
-                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, photoFilesPath.ElementAt(i)));
+                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer.UploadUrl, photoFilesPath.First()));
 
                     // Сохранить загруженный файл
                     var photo = await api.Photo.SaveAsync(new PhotoSaveParams
@@ -628,14 +628,14 @@ namespace VkApi.Services
                         {
                             PeerId = -ids.ElementAt(i),
                             Attachments = photo,
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
                         {
                             UserId = ids.ElementAt(i),
                             Attachments = photo,
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)) : null,
                             RandomId = new Random().Next()
                         });
                 }
@@ -668,8 +668,8 @@ namespace VkApi.Services
                 {
                     Thread.Sleep(delay * 1000);
 
-                    if (!File.Exists(audioFilesPath.ElementAt(i)))
-                        throw new Exception($"File '{audioFilesPath.ElementAt(i)}' Is not Found");
+                    if (!File.Exists(audioFilesPath.First()))
+                        throw new Exception($"File '{audioFilesPath.First()}' Is not Found");
 
                     // Получить адрес сервера для загрузки.
                     var uploadServer = api.Audio.GetUploadServer();
@@ -677,7 +677,7 @@ namespace VkApi.Services
                     // Загрузить файл.
                     var wc = new WebClient();
                     var responseFile =
-                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer, audioFilesPath.ElementAt(i)));
+                        Encoding.ASCII.GetString(wc.UploadFile(uploadServer, audioFilesPath.First()));
 
                     // Сохранить загруженный файл
                     var audio = await api.Audio.SaveAsync(responseFile);
@@ -690,7 +690,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)) : null,
+                            Message = welcomeMessages != null && welcomeMessages.Any() ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)) : null,
                             RandomId = new Random().Next()
                         })
                         : await api.Messages.SendAsync(new MessagesSendParams()
@@ -700,7 +700,7 @@ namespace VkApi.Services
                             {
                                 audio
                             },
-                            Message = (welcomeMessages != null && welcomeMessages.Any()) ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count)): null,
+                            Message = (welcomeMessages != null && welcomeMessages.Any()) ? welcomeMessages.ElementAt(new Random().Next(0, welcomeMessages.Count-1)): null,
                             RandomId = new Random().Next()
                         });
                 }
@@ -714,10 +714,10 @@ namespace VkApi.Services
             }
             finally
             {
-                foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
-                {
-                    File.Delete(audioFilepath);
-                }
+                //foreach (var audioFilepath in audioFilesPath.Where(File.Exists))
+                //{
+                //    File.Delete(audioFilepath);
+                //}
             }
         }
 
