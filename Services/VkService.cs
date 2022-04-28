@@ -131,7 +131,6 @@ namespace VkApi.Services
         {
             var api = await Authorize(_token);
 
-
             // Получить адрес сервера для загрузки.
             var uploadServer = api.Audio.GetUploadServer();
 
@@ -178,12 +177,14 @@ namespace VkApi.Services
                 {
                     AccessToken = _token
                 });
+
+                await api.Users.GetAsync(Enumerable.Empty<long>(), ProfileFields.All);
             }
             catch (Exception e)
             {
-                _logger.LogError("Authorize is Failed", e.Message);
+                //throw new HttpException(400, "Auth failed");
             }
-
+            
             return api;
         }
 
@@ -404,7 +405,7 @@ namespace VkApi.Services
                     _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath.Any())
                 {
                     await SendMessageWithPhoto(api, _autoFriendsResponderModel.PhotoOrVideoSettings.PhotoFilesPath,
-                        _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
+                        _autoFriendsResponderModel.PhotoOrVideoSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay, IsGroup: true);
                 }
 
 
@@ -413,7 +414,7 @@ namespace VkApi.Services
                     _autoFriendsResponderModel.AudioSettings.AudioFilesPath.Any())
                 {
                     await SendMessageWithAudio(api, _autoFriendsResponderModel.AudioSettings.AudioFilesPath,
-                        _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay);
+                        _autoFriendsResponderModel.AudioSettings.Messages, _autoFriendsResponderModel.WelcomeCount, groupsIdsWhereAccessWriteMessage, _autoFriendsResponderModel.Delay, IsGroup: true);
                 }
 
                 if (_autoFriendsResponderModel.SetLikeToWall)

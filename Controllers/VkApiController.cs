@@ -1,8 +1,5 @@
-﻿using System;
-using System.IO;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using VkApi.Services;
@@ -56,13 +53,6 @@ namespace VkApi.Controllers
             return new OkResult();
         }
 
-        /// <summary>
-        /// Retrieves a specific product by unique id
-        /// </summary>
-        /// <remarks>Awesomeness!</remarks>
-        /// <response code="200">Product created</response>
-        /// <response code="400">Product has missing/invalid values</response>
-        /// <response code="500">Oops! Can't create your product right now</response>
         [HttpPost("getMembersFromGroup")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> GetGroups([FromHeader] string token, [FromBody] string groupName, CancellationToken cancellationToken = default)
